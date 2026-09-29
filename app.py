@@ -799,7 +799,7 @@ def render_flash_css(container_key: str):
 
 st.set_page_config(page_title="中英單字連連看", page_icon="🎮", layout="wide")
 
-st.title("🎮 國小一年級中英單字連連看")
+st.title("🎮 國小中英單字連連看")
 st.caption(f"單字與發音檔存放於：{DATA_DIR}")
 
 # 初始化 session_state
