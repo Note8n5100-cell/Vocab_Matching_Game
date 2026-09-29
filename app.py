@@ -59,24 +59,527 @@ WORDS_FILE = compute_words_file(DATA_DIR, st.session_state.words_filename)
 # ---------------------------------------------------------------------------
 
 DEFAULT_WORDS = [
-    {"en": "apple", "zh": "蘋果", "icon": "🍎"},
-    {"en": "banana", "zh": "香蕉", "icon": "🍌"},
-    {"en": "cat", "zh": "貓", "icon": "🐱"},
-    {"en": "dog", "zh": "狗", "icon": "🐶"},
-    {"en": "bird", "zh": "鳥", "icon": "🐦"},
-    {"en": "fish", "zh": "魚", "icon": "🐟"},
-    {"en": "egg", "zh": "蛋", "icon": "🥚"},
-    {"en": "milk", "zh": "牛奶", "icon": "🥛"},
-    {"en": "book", "zh": "書", "icon": "📖"},
-    {"en": "pen", "zh": "筆", "icon": "🖊️"},
-    {"en": "bag", "zh": "書包", "icon": "🎒"},
-    {"en": "red", "zh": "紅色", "icon": "🟥"},
-    {"en": "blue", "zh": "藍色", "icon": "🟦"},
-    {"en": "yellow", "zh": "黃色", "icon": "🟨"},
-    {"en": "one", "zh": "一", "icon": "1️⃣"},
-    {"en": "two", "zh": "二", "icon": "2️⃣"},
+  {
+    "en": "Hey, Andy. What are you doing?",
+    "zh": "嘿，Andy。你在做什麼？",
+    "icon": "🔤"
+  },
+  {
+    "en": "Hi, Molly. I’m doing a jigsaw puzzle.",
+    "zh": "嗨，Molly。我正在拼拼圖。",
+    "icon": "🔤"
+  },
+  {
+    "en": "One, two, three, ... There are twenty-five pieces here.",
+    "zh": "1、2、3、⋯ 這裡有二十五片拼圖。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Would you like to help me finish the jigsaw puzzle?",
+    "zh": "你想幫我一起完成拼圖嗎？",
+    "icon": "🔤"
+  },
+  {
+    "en": "Yes, I’d like to.",
+    "zh": "是的，我想。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Mom, there are thirteen tomatoes in the basket.",
+    "zh": "媽媽，籃子裡有十三顆番茄。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Mom, there are fourteen dishes here.",
+    "zh": "媽媽，這裡有十四個盤子。",
+    "icon": "🔤"
+  },
+  {
+    "en": "OK. How many mugs do you count?",
+    "zh": "好的。那你數了幾個馬克杯了呢？",
+    "icon": "🔤"
+  },
+  {
+    "en": "I count thirty.",
+    "zh": "我數了三十個。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I like this mug. This mug is my favorite.",
+    "zh": "我喜歡這個馬克杯。這個馬克杯是我的最愛。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I like it, too.",
+    "zh": "我也喜歡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "There are fifteen children in the picture. They all look happy.",
+    "zh": "照片裡有十五位小孩。他們看起來都很開心。",
+    "icon": "🔤"
+  },
+  {
+    "en": "There are twenty-six mice under the tree. I like the white one because it is so cute.",
+    "zh": "樹下有二十六隻老鼠。我喜歡白色的那隻因為它很可愛。",
+    "icon": "🔤"
+  },
+  {
+    "en": "There are thirty-nine knives on the table. Don’t touch them.",
+    "zh": "桌上有三十九把刀子。別碰它們。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Andy, how does the steak taste?",
+    "zh": "Andy，牛排嘗起來如何？",
+    "icon": "🔤"
+  },
+  {
+    "en": "It tastes wonderful.",
+    "zh": "它嘗起來好極了。",
+    "icon": "🔤"
+  },
+  {
+    "en": "It smells good, Dora. What is it?",
+    "zh": "它聞起來好棒，Dora。它是什麼？",
+    "icon": "🔤"
+  },
+  {
+    "en": "It's my favorite soup.",
+    "zh": "它是我最愛的湯。",
+    "icon": "🔤"
+  },
+  {
+    "en": "It tastes delicious.",
+    "zh": "它嚐起來很美味。",
+    "icon": "🔤"
+  },
+  {
+    "en": "You look so happy.",
+    "zh": "你看起來很快樂。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Yes, I’m very happy.",
+    "zh": "是的，我非常快樂。",
+    "icon": "🔤"
+  },
+  {
+    "en": "The cake tastes really sweet.",
+    "zh": "這個蛋糕嚐起來真的很甜。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I like it.",
+    "zh": "我喜歡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I like it, too.",
+    "zh": "我也喜歡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "The coffee tastes really bitter.",
+    "zh": "這個咖啡嚐起來真的很苦。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I don’t like it.",
+    "zh": "我不喜歡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I don’t like it, either.",
+    "zh": "我也不喜歡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Andy likes the hamburger because it smells great. Ted likes it, too.",
+    "zh": "Andy喜歡漢堡因為它聞起來很棒。Ted也喜歡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Lisa likes the bread because it tastes delicious. Buddy likes it, too.",
+    "zh": "Lisa喜歡麵包因為它嚐起來很美味。Buddy也喜歡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Molly and Andy don’t like the French fries because they taste terrible. Buddy doesn’t like them, either.",
+    "zh": "Molly和Andy不喜歡薯條因為它們嚐起來很糟糕。Buddy也不喜歡它們。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I hope I can learn computer science well.",
+    "zh": "我希望我能把電腦科學學好。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Why?",
+    "zh": "為什麼？",
+    "icon": "🔤"
+  },
+  {
+    "en": "I want to be an engineer.",
+    "zh": "因為我想成為工程師。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I hope I can play basketball well.",
+    "zh": "我希望我能把籃球打好。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Why?",
+    "zh": "為什麼？",
+    "icon": "🔤"
+  },
+  {
+    "en": "I want to be a basketball player.",
+    "zh": "因為我想成為籃球選手。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Andy must feel dizzy.",
+    "zh": "安迪一定覺得頭暈。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I think he needs to take a rest.",
+    "zh": "我覺得他需要休息一下。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Who is crying?",
+    "zh": "誰正在哭？",
+    "icon": "🔤"
+  },
+  {
+    "en": "My sister, Karen, is crying. I don’t think she likes the big dog.",
+    "zh": "我的妹妹，Karen正在哭。我並不覺得她喜歡這隻大狗。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Poor Karen. I think she wants to go.",
+    "zh": "可憐的Karen。我覺得她想走了。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I know Lisa likes dresses.",
+    "zh": "我知道Lisa喜歡裙子。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I know Ted likes sports.",
+    "zh": "我知道Ted喜歡運動。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I know Molly likes her family.",
+    "zh": "我知道Molly喜歡她的家人。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I know Buddy likes music.",
+    "zh": "我知道Buddy喜歡音樂。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I know Ms. Lee likes animals.",
+    "zh": "我知道李女士喜歡動物。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I know Mr. White likes his students.",
+    "zh": "我知道白先生喜歡他的學生。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I know everything.",
+    "zh": "我知道任何事物。",
+    "icon": "🔤"
+  },
+  {
+    "en": "It’s warm outside now. Do you like spring?",
+    "zh": "外面現在很暖和。你喜歡春天嗎？",
+    "icon": "🔤"
+  },
+  {
+    "en": "Yes, I do. Everybody feels great in spring. Do you like summer?",
+    "zh": "是的，我喜歡。每個人在春天都感覺很好。那你喜歡夏天嗎？",
+    "icon": "🔤"
+  },
+  {
+    "en": "Yes. In summer, I usually go camping with my family. What do you do in summer?",
+    "zh": "是的。在夏天，我常常和我的家人去露營。你在夏天的時候做什麼呢？",
+    "icon": "🔤"
+  },
+  {
+    "en": "I go to the beach with my family in summer. We build sandcastles there. It’s fun!",
+    "zh": "我和家人在夏天的時候會去海邊。我們會在那邊堆沙堡。很有趣！",
+    "icon": "🔤"
+  },
+  {
+    "en": "What's your favorite season?",
+    "zh": "你最喜歡的季節是什麼？",
+    "icon": "🔤"
+  },
+  {
+    "en": "Fall is my favorite season because I can go hiking with my family.",
+    "zh": "秋天是我最喜歡的季節因為我可以跟我的家人去健行。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I like fall, too. How about you, Buddy?",
+    "zh": "我也喜歡秋天。那你呢，Buddy？",
+    "icon": "🔤"
+  },
+  {
+    "en": "My favorite season is winter because I can go skiing with my friends.",
+    "zh": "我最喜歡的季節是冬天因為我可以跟我的朋友們去滑雪。",
+    "icon": "🔤"
+  },
+  {
+    "en": "I like winter, too.",
+    "zh": "我也喜歡冬天。",
+    "icon": "🔤"
+  },
+  {
+    "en": "There are four seasons in a year: spring, summer, fall and winter.",
+    "zh": "一年有四個季節：春天、夏天、秋天和冬天。",
+    "icon": "🔤"
+  },
+  {
+    "en": "In spring, the weather becomes warm and I like to go jogging.",
+    "zh": "春天時，天氣變暖和，我喜歡去慢跑。",
+    "icon": "🔤"
+  },
+  {
+    "en": "In summer, it’s hot and we like to go swimming.",
+    "zh": "夏天很熱，我們喜歡去游泳。",
+    "icon": "🔤"
+  },
+  {
+    "en": "In fall, the weather becomes cool and I like to go roller-skating in the park.",
+    "zh": "秋天，天氣變涼爽，我喜歡去公園溜直排輪。",
+    "icon": "🔤"
+  },
+  {
+    "en": "In winter, it is cold and we like to build a snowman.",
+    "zh": "冬天很冷，我們喜歡堆雪人。",
+    "icon": "🔤"
+  },
+  {
+    "en": "OK, everybody.",
+    "zh": "好的，大家。",
+    "icon": "🔤"
+  },
+  {
+    "en": "What season comes after spring?",
+    "zh": "春天過後是什麼季節？",
+    "icon": "🔤"
+  },
+  {
+    "en": "It’s summer. Summer comes after spring.",
+    "zh": "是夏天。夏天在春天之後來。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Great! What can you see in summer?",
+    "zh": "太棒了！夏天你可以看到什麼？",
+    "icon": "🔤"
+  },
+  {
+    "en": "We can see a lot of people wearing shorts and sandals.",
+    "zh": "我們可以看到很多人穿著短褲和涼鞋。",
+    "icon": "🔤"
+  },
+  {
+    "en": "We can see some people drinking soda.",
+    "zh": "我們可以看到有人在喝汽水。",
+    "icon": "🔤"
+  },
+  {
+    "en": "What season comes before winter?",
+    "zh": "冬天之前是什麼季節？",
+    "icon": "🔤"
+  },
+  {
+    "en": "It’s fall. We can see a lot of children jumping in the leaves.",
+    "zh": "是秋天。我們可以看到很多小朋友在落葉堆裡跳來跳去。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Why is spring your favorite season?",
+    "zh": "為什麼春天是你最喜歡的季節？",
+    "icon": "🔤"
+  },
+  {
+    "en": "In spring, we can see butterflies flying and hear birds singing.",
+    "zh": "春天裡，我們可以看到蝴蝶飛舞，聽到鳥兒歌唱。",
+    "icon": "🔤"
+  },
+  {
+    "en": "We can also see people playing and laughing in the playground.",
+    "zh": "我們還可以看到人們在操場上玩耍和笑聲不斷。",
+    "icon": "🔤"
+  },
+  {
+    "en": "You’re right. I want to go to the bookstore after school. Do you want to come with me?",
+    "zh": "你說得對。放學後我想去書店，你想跟我一起去嗎？",
+    "icon": "🔤"
+  },
+  {
+    "en": "Sure, but I need to go home before dinner.",
+    "zh": "當然可以，但我需要在晚餐前回家。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Andy always has breakfast before school.",
+    "zh": "Andy總是在上學前吃早餐。",
+    "icon": "🔤"
+  },
+  {
+    "en": "He usually reads at his desk after lunch.",
+    "zh": "他通常在午餐後在書桌前看書。",
+    "icon": "🔤"
+  },
+  {
+    "en": "He always does his homework after school.",
+    "zh": "他總是在放學後寫作業。",
+    "icon": "🔤"
+  },
+  {
+    "en": "He sometimes takes Rocky to the park before dinner.",
+    "zh": "他有時會在晚餐前帶Rocky去公園。",
+    "icon": "🔤"
+  },
+  {
+    "en": "He likes to see Rocky running there.",
+    "zh": "他喜歡看Rocky在那裡跑來跑去。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Andy’s mom is always busy before dinner.",
+    "zh": "Andy的媽媽在晚餐前總是很忙。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Andy’s dad usually feels tired after work.",
+    "zh": "Andy的爸爸下班後通常覺得很累。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Andy and his family always have dinner together.",
+    "zh": "Andy和他的家人總是一起吃晚餐。",
+    "icon": "🔤"
+  },
+  {
+    "en": "They talk, laugh, and enjoy the meal together.",
+    "zh": "他們一起聊天、笑著，享受這頓飯。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Look! There is a scooter over there. It looks cool.",
+    "zh": "看！那邊有一台機車，看起來很酷。",
+    "icon": "🔤"
+  },
+  {
+    "en": "My dad goes to work by scooter. It’s a little dangerous.",
+    "zh": "我爸爸騎機車去上班。有一點危險。",
+    "icon": "🔤"
+  },
+  {
+    "en": "How do you go to school every day?",
+    "zh": "你每天怎麼去上學？",
+    "icon": "🔤"
+  },
+  {
+    "en": "I usually go to school by bus. How about you?",
+    "zh": "我通常坐公車去上學。那你呢？",
+    "icon": "🔤"
+  },
+  {
+    "en": "I go to school by bicycle.",
+    "zh": "我騎腳踏車去上學。",
+    "icon": "🔤"
+  },
+  {
+    "en": "That's nice! I sometimes go to school by bicycle, too.",
+    "zh": "那很好！我有時候也會騎腳踏車去上學。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Look! There is a scooter over there. It looks cool.",
+    "zh": "看！那邊有一台機車，看起來很酷。",
+    "icon": "🔤"
+  },
+  {
+    "en": "My dad goes to work by scooter.",
+    "zh": "我爸爸騎機車去上班。",
+    "icon": "🔤"
+  },
+  {
+    "en": "It's a little dangerous.",
+    "zh": "有一點危險。",
+    "icon": "🔤"
+  },
+  {
+    "en": "How can we get to ABC Restaurant?",
+    "zh": "我們怎麼去ABC餐廳？",
+    "icon": "🔤"
+  },
+  {
+    "en": "We can get there by subway. It’s safe and comfortable.",
+    "zh": "我們可以搭地鐵去那裡，又安全又舒服。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Can we get there on foot?",
+    "zh": "我們可以走路去嗎？",
+    "icon": "🔤"
+  },
+  {
+    "en": "Of course. Wow! There’s an airplane in the sky.",
+    "zh": "當然可以。哇！天上有一架飛機。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Now, we can get to a lot of places by airplane.",
+    "zh": "現在，我們可以搭飛機去很多地方。",
+    "icon": "🔤"
+  },
+  {
+    "en": "There is a big department store in the city.",
+    "zh": "市區裡有一家大型百貨公司。",
+    "icon": "🔤"
+  },
+  {
+    "en": "John likes to ride his bicycle or motorcycle to get there.",
+    "zh": "John喜歡騎自行車或機車去那裡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Ms. Blake wants to drive her car or take a taxi to get there.",
+    "zh": "Blake女士想開車或搭計程車去那裡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Sarah likes to take the bus or subway to get there.",
+    "zh": "Sarah喜歡搭公車或地鐵去那裡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "Mrs. Smith wants to get there on foot.",
+    "zh": "Smith太太想走路去那裡。",
+    "icon": "🔤"
+  },
+  {
+    "en": "People can get to the department store in a lot of ways.",
+    "zh": "人們可以用很多種方式去那家百貨公司。",
+    "icon": "🔤"
+  }
 ]
-
 # 常見單字的圖案猜測表（使用者新增單字時若不填圖案，會嘗試自動比對）
 ICON_GUESS = {w["en"].lower(): w["icon"] for w in DEFAULT_WORDS}
 ICON_GUESS.update({
