@@ -1,4 +1,30 @@
 # -*- coding: utf-8 -*-
+r"""
+國小一年級中英單字連連看小遊戲
+------------------------------------------
+功能：
+1. 中英文單字連連看遊戲（點選左邊中文、右邊英文，配對正確會消除）
+2. 可自訂單字（含圖案 emoji），並儲存在 D:\vocab_game\words.json
+3. 具備英文單字發音（使用 gTTS 產生語音檔，快取在 D:\vocab_game\audio）
+4. 點選英文單字後，該按鈕會持續變色閃爍，並反覆播放該單字發音，
+   直到配對成功或重新選擇為止
+5. 配對正確會有拍手鼓掌音效；配對錯誤畫面會震動一下
+
+執行方式：
+    1. 安裝套件： pip install -r requirements.txt
+       （需要 streamlit >= 1.36，因為用到 st.container(key=...) 功能）
+    2. 執行程式： streamlit run vocab_matching_game.py
+
+注意：
+    - 本程式預設把單字資料與語音檔存放在 D 槽（D:\vocab_game）。
+      若電腦沒有 D 槽（例如 Mac / Linux，或 Windows 只有 C 槽），
+      程式會自動改存到目前資料夾底下的 vocab_game 資料夾，並顯示提示訊息。
+    - 語音使用 gTTS（Google 文字轉語音），產生語音檔時需要能連上網路，
+      但同一個單字只需下載一次，之後會使用快取檔案，不用重複連網。
+    - 拍手音效與畫面震動使用瀏覽器內建的 Web Audio / CSS 動畫技術產生，
+      不需要額外下載任何音效檔。
+"""
+
 import streamlit as st
 import streamlit.components.v1 as components
 import json
@@ -59,527 +85,24 @@ WORDS_FILE = compute_words_file(DATA_DIR, st.session_state.words_filename)
 # ---------------------------------------------------------------------------
 
 DEFAULT_WORDS = [
-  {
-    "en": "Hey, Andy. What are you doing?",
-    "zh": "嘿，Andy。你在做什麼？",
-    "icon": "🔤"
-  },
-  {
-    "en": "Hi, Molly. I’m doing a jigsaw puzzle.",
-    "zh": "嗨，Molly。我正在拼拼圖。",
-    "icon": "🔤"
-  },
-  {
-    "en": "One, two, three, ... There are twenty-five pieces here.",
-    "zh": "1、2、3、⋯ 這裡有二十五片拼圖。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Would you like to help me finish the jigsaw puzzle?",
-    "zh": "你想幫我一起完成拼圖嗎？",
-    "icon": "🔤"
-  },
-  {
-    "en": "Yes, I’d like to.",
-    "zh": "是的，我想。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Mom, there are thirteen tomatoes in the basket.",
-    "zh": "媽媽，籃子裡有十三顆番茄。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Mom, there are fourteen dishes here.",
-    "zh": "媽媽，這裡有十四個盤子。",
-    "icon": "🔤"
-  },
-  {
-    "en": "OK. How many mugs do you count?",
-    "zh": "好的。那你數了幾個馬克杯了呢？",
-    "icon": "🔤"
-  },
-  {
-    "en": "I count thirty.",
-    "zh": "我數了三十個。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I like this mug. This mug is my favorite.",
-    "zh": "我喜歡這個馬克杯。這個馬克杯是我的最愛。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I like it, too.",
-    "zh": "我也喜歡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "There are fifteen children in the picture. They all look happy.",
-    "zh": "照片裡有十五位小孩。他們看起來都很開心。",
-    "icon": "🔤"
-  },
-  {
-    "en": "There are twenty-six mice under the tree. I like the white one because it is so cute.",
-    "zh": "樹下有二十六隻老鼠。我喜歡白色的那隻因為它很可愛。",
-    "icon": "🔤"
-  },
-  {
-    "en": "There are thirty-nine knives on the table. Don’t touch them.",
-    "zh": "桌上有三十九把刀子。別碰它們。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Andy, how does the steak taste?",
-    "zh": "Andy，牛排嘗起來如何？",
-    "icon": "🔤"
-  },
-  {
-    "en": "It tastes wonderful.",
-    "zh": "它嘗起來好極了。",
-    "icon": "🔤"
-  },
-  {
-    "en": "It smells good, Dora. What is it?",
-    "zh": "它聞起來好棒，Dora。它是什麼？",
-    "icon": "🔤"
-  },
-  {
-    "en": "It's my favorite soup.",
-    "zh": "它是我最愛的湯。",
-    "icon": "🔤"
-  },
-  {
-    "en": "It tastes delicious.",
-    "zh": "它嚐起來很美味。",
-    "icon": "🔤"
-  },
-  {
-    "en": "You look so happy.",
-    "zh": "你看起來很快樂。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Yes, I’m very happy.",
-    "zh": "是的，我非常快樂。",
-    "icon": "🔤"
-  },
-  {
-    "en": "The cake tastes really sweet.",
-    "zh": "這個蛋糕嚐起來真的很甜。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I like it.",
-    "zh": "我喜歡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I like it, too.",
-    "zh": "我也喜歡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "The coffee tastes really bitter.",
-    "zh": "這個咖啡嚐起來真的很苦。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I don’t like it.",
-    "zh": "我不喜歡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I don’t like it, either.",
-    "zh": "我也不喜歡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Andy likes the hamburger because it smells great. Ted likes it, too.",
-    "zh": "Andy喜歡漢堡因為它聞起來很棒。Ted也喜歡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Lisa likes the bread because it tastes delicious. Buddy likes it, too.",
-    "zh": "Lisa喜歡麵包因為它嚐起來很美味。Buddy也喜歡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Molly and Andy don’t like the French fries because they taste terrible. Buddy doesn’t like them, either.",
-    "zh": "Molly和Andy不喜歡薯條因為它們嚐起來很糟糕。Buddy也不喜歡它們。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I hope I can learn computer science well.",
-    "zh": "我希望我能把電腦科學學好。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Why?",
-    "zh": "為什麼？",
-    "icon": "🔤"
-  },
-  {
-    "en": "I want to be an engineer.",
-    "zh": "因為我想成為工程師。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I hope I can play basketball well.",
-    "zh": "我希望我能把籃球打好。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Why?",
-    "zh": "為什麼？",
-    "icon": "🔤"
-  },
-  {
-    "en": "I want to be a basketball player.",
-    "zh": "因為我想成為籃球選手。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Andy must feel dizzy.",
-    "zh": "安迪一定覺得頭暈。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I think he needs to take a rest.",
-    "zh": "我覺得他需要休息一下。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Who is crying?",
-    "zh": "誰正在哭？",
-    "icon": "🔤"
-  },
-  {
-    "en": "My sister, Karen, is crying. I don’t think she likes the big dog.",
-    "zh": "我的妹妹，Karen正在哭。我並不覺得她喜歡這隻大狗。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Poor Karen. I think she wants to go.",
-    "zh": "可憐的Karen。我覺得她想走了。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I know Lisa likes dresses.",
-    "zh": "我知道Lisa喜歡裙子。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I know Ted likes sports.",
-    "zh": "我知道Ted喜歡運動。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I know Molly likes her family.",
-    "zh": "我知道Molly喜歡她的家人。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I know Buddy likes music.",
-    "zh": "我知道Buddy喜歡音樂。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I know Ms. Lee likes animals.",
-    "zh": "我知道李女士喜歡動物。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I know Mr. White likes his students.",
-    "zh": "我知道白先生喜歡他的學生。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I know everything.",
-    "zh": "我知道任何事物。",
-    "icon": "🔤"
-  },
-  {
-    "en": "It’s warm outside now. Do you like spring?",
-    "zh": "外面現在很暖和。你喜歡春天嗎？",
-    "icon": "🔤"
-  },
-  {
-    "en": "Yes, I do. Everybody feels great in spring. Do you like summer?",
-    "zh": "是的，我喜歡。每個人在春天都感覺很好。那你喜歡夏天嗎？",
-    "icon": "🔤"
-  },
-  {
-    "en": "Yes. In summer, I usually go camping with my family. What do you do in summer?",
-    "zh": "是的。在夏天，我常常和我的家人去露營。你在夏天的時候做什麼呢？",
-    "icon": "🔤"
-  },
-  {
-    "en": "I go to the beach with my family in summer. We build sandcastles there. It’s fun!",
-    "zh": "我和家人在夏天的時候會去海邊。我們會在那邊堆沙堡。很有趣！",
-    "icon": "🔤"
-  },
-  {
-    "en": "What's your favorite season?",
-    "zh": "你最喜歡的季節是什麼？",
-    "icon": "🔤"
-  },
-  {
-    "en": "Fall is my favorite season because I can go hiking with my family.",
-    "zh": "秋天是我最喜歡的季節因為我可以跟我的家人去健行。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I like fall, too. How about you, Buddy?",
-    "zh": "我也喜歡秋天。那你呢，Buddy？",
-    "icon": "🔤"
-  },
-  {
-    "en": "My favorite season is winter because I can go skiing with my friends.",
-    "zh": "我最喜歡的季節是冬天因為我可以跟我的朋友們去滑雪。",
-    "icon": "🔤"
-  },
-  {
-    "en": "I like winter, too.",
-    "zh": "我也喜歡冬天。",
-    "icon": "🔤"
-  },
-  {
-    "en": "There are four seasons in a year: spring, summer, fall and winter.",
-    "zh": "一年有四個季節：春天、夏天、秋天和冬天。",
-    "icon": "🔤"
-  },
-  {
-    "en": "In spring, the weather becomes warm and I like to go jogging.",
-    "zh": "春天時，天氣變暖和，我喜歡去慢跑。",
-    "icon": "🔤"
-  },
-  {
-    "en": "In summer, it’s hot and we like to go swimming.",
-    "zh": "夏天很熱，我們喜歡去游泳。",
-    "icon": "🔤"
-  },
-  {
-    "en": "In fall, the weather becomes cool and I like to go roller-skating in the park.",
-    "zh": "秋天，天氣變涼爽，我喜歡去公園溜直排輪。",
-    "icon": "🔤"
-  },
-  {
-    "en": "In winter, it is cold and we like to build a snowman.",
-    "zh": "冬天很冷，我們喜歡堆雪人。",
-    "icon": "🔤"
-  },
-  {
-    "en": "OK, everybody.",
-    "zh": "好的，大家。",
-    "icon": "🔤"
-  },
-  {
-    "en": "What season comes after spring?",
-    "zh": "春天過後是什麼季節？",
-    "icon": "🔤"
-  },
-  {
-    "en": "It’s summer. Summer comes after spring.",
-    "zh": "是夏天。夏天在春天之後來。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Great! What can you see in summer?",
-    "zh": "太棒了！夏天你可以看到什麼？",
-    "icon": "🔤"
-  },
-  {
-    "en": "We can see a lot of people wearing shorts and sandals.",
-    "zh": "我們可以看到很多人穿著短褲和涼鞋。",
-    "icon": "🔤"
-  },
-  {
-    "en": "We can see some people drinking soda.",
-    "zh": "我們可以看到有人在喝汽水。",
-    "icon": "🔤"
-  },
-  {
-    "en": "What season comes before winter?",
-    "zh": "冬天之前是什麼季節？",
-    "icon": "🔤"
-  },
-  {
-    "en": "It’s fall. We can see a lot of children jumping in the leaves.",
-    "zh": "是秋天。我們可以看到很多小朋友在落葉堆裡跳來跳去。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Why is spring your favorite season?",
-    "zh": "為什麼春天是你最喜歡的季節？",
-    "icon": "🔤"
-  },
-  {
-    "en": "In spring, we can see butterflies flying and hear birds singing.",
-    "zh": "春天裡，我們可以看到蝴蝶飛舞，聽到鳥兒歌唱。",
-    "icon": "🔤"
-  },
-  {
-    "en": "We can also see people playing and laughing in the playground.",
-    "zh": "我們還可以看到人們在操場上玩耍和笑聲不斷。",
-    "icon": "🔤"
-  },
-  {
-    "en": "You’re right. I want to go to the bookstore after school. Do you want to come with me?",
-    "zh": "你說得對。放學後我想去書店，你想跟我一起去嗎？",
-    "icon": "🔤"
-  },
-  {
-    "en": "Sure, but I need to go home before dinner.",
-    "zh": "當然可以，但我需要在晚餐前回家。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Andy always has breakfast before school.",
-    "zh": "Andy總是在上學前吃早餐。",
-    "icon": "🔤"
-  },
-  {
-    "en": "He usually reads at his desk after lunch.",
-    "zh": "他通常在午餐後在書桌前看書。",
-    "icon": "🔤"
-  },
-  {
-    "en": "He always does his homework after school.",
-    "zh": "他總是在放學後寫作業。",
-    "icon": "🔤"
-  },
-  {
-    "en": "He sometimes takes Rocky to the park before dinner.",
-    "zh": "他有時會在晚餐前帶Rocky去公園。",
-    "icon": "🔤"
-  },
-  {
-    "en": "He likes to see Rocky running there.",
-    "zh": "他喜歡看Rocky在那裡跑來跑去。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Andy’s mom is always busy before dinner.",
-    "zh": "Andy的媽媽在晚餐前總是很忙。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Andy’s dad usually feels tired after work.",
-    "zh": "Andy的爸爸下班後通常覺得很累。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Andy and his family always have dinner together.",
-    "zh": "Andy和他的家人總是一起吃晚餐。",
-    "icon": "🔤"
-  },
-  {
-    "en": "They talk, laugh, and enjoy the meal together.",
-    "zh": "他們一起聊天、笑著，享受這頓飯。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Look! There is a scooter over there. It looks cool.",
-    "zh": "看！那邊有一台機車，看起來很酷。",
-    "icon": "🔤"
-  },
-  {
-    "en": "My dad goes to work by scooter. It’s a little dangerous.",
-    "zh": "我爸爸騎機車去上班。有一點危險。",
-    "icon": "🔤"
-  },
-  {
-    "en": "How do you go to school every day?",
-    "zh": "你每天怎麼去上學？",
-    "icon": "🔤"
-  },
-  {
-    "en": "I usually go to school by bus. How about you?",
-    "zh": "我通常坐公車去上學。那你呢？",
-    "icon": "🔤"
-  },
-  {
-    "en": "I go to school by bicycle.",
-    "zh": "我騎腳踏車去上學。",
-    "icon": "🔤"
-  },
-  {
-    "en": "That's nice! I sometimes go to school by bicycle, too.",
-    "zh": "那很好！我有時候也會騎腳踏車去上學。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Look! There is a scooter over there. It looks cool.",
-    "zh": "看！那邊有一台機車，看起來很酷。",
-    "icon": "🔤"
-  },
-  {
-    "en": "My dad goes to work by scooter.",
-    "zh": "我爸爸騎機車去上班。",
-    "icon": "🔤"
-  },
-  {
-    "en": "It's a little dangerous.",
-    "zh": "有一點危險。",
-    "icon": "🔤"
-  },
-  {
-    "en": "How can we get to ABC Restaurant?",
-    "zh": "我們怎麼去ABC餐廳？",
-    "icon": "🔤"
-  },
-  {
-    "en": "We can get there by subway. It’s safe and comfortable.",
-    "zh": "我們可以搭地鐵去那裡，又安全又舒服。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Can we get there on foot?",
-    "zh": "我們可以走路去嗎？",
-    "icon": "🔤"
-  },
-  {
-    "en": "Of course. Wow! There’s an airplane in the sky.",
-    "zh": "當然可以。哇！天上有一架飛機。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Now, we can get to a lot of places by airplane.",
-    "zh": "現在，我們可以搭飛機去很多地方。",
-    "icon": "🔤"
-  },
-  {
-    "en": "There is a big department store in the city.",
-    "zh": "市區裡有一家大型百貨公司。",
-    "icon": "🔤"
-  },
-  {
-    "en": "John likes to ride his bicycle or motorcycle to get there.",
-    "zh": "John喜歡騎自行車或機車去那裡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Ms. Blake wants to drive her car or take a taxi to get there.",
-    "zh": "Blake女士想開車或搭計程車去那裡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Sarah likes to take the bus or subway to get there.",
-    "zh": "Sarah喜歡搭公車或地鐵去那裡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "Mrs. Smith wants to get there on foot.",
-    "zh": "Smith太太想走路去那裡。",
-    "icon": "🔤"
-  },
-  {
-    "en": "People can get to the department store in a lot of ways.",
-    "zh": "人們可以用很多種方式去那家百貨公司。",
-    "icon": "🔤"
-  }
+    {"en": "apple", "zh": "蘋果", "icon": "🍎"},
+    {"en": "banana", "zh": "香蕉", "icon": "🍌"},
+    {"en": "cat", "zh": "貓", "icon": "🐱"},
+    {"en": "dog", "zh": "狗", "icon": "🐶"},
+    {"en": "bird", "zh": "鳥", "icon": "🐦"},
+    {"en": "fish", "zh": "魚", "icon": "🐟"},
+    {"en": "egg", "zh": "蛋", "icon": "🥚"},
+    {"en": "milk", "zh": "牛奶", "icon": "🥛"},
+    {"en": "book", "zh": "書", "icon": "📖"},
+    {"en": "pen", "zh": "筆", "icon": "🖊️"},
+    {"en": "bag", "zh": "書包", "icon": "🎒"},
+    {"en": "red", "zh": "紅色", "icon": "🟥"},
+    {"en": "blue", "zh": "藍色", "icon": "🟦"},
+    {"en": "yellow", "zh": "黃色", "icon": "🟨"},
+    {"en": "one", "zh": "一", "icon": "1️⃣"},
+    {"en": "two", "zh": "二", "icon": "2️⃣"},
 ]
+
 # 常見單字的圖案猜測表（使用者新增單字時若不填圖案，會嘗試自動比對）
 ICON_GUESS = {w["en"].lower(): w["icon"] for w in DEFAULT_WORDS}
 ICON_GUESS.update({
@@ -799,7 +322,7 @@ def render_flash_css(container_key: str):
 
 st.set_page_config(page_title="中英單字連連看", page_icon="🎮", layout="wide")
 
-st.title("🎮 國小中英單字連連看")
+st.title("🎮 國小一年級中英單字連連看")
 st.caption(f"單字與發音檔存放於：{DATA_DIR}")
 
 # 初始化 session_state
@@ -818,14 +341,25 @@ if "round_pairs" not in st.session_state:
     st.session_state.attempts = 0
 
 
-def start_new_round(num_pairs: int):
+def start_new_round(num_pairs: int, sequential: bool = False,
+                    start_no: int = 1, end_no: int = None):
+    """sequential=False：隨機抽題，左欄（英文）順序也隨機。
+    sequential=True：依單字清單順序，取第 start_no ~ end_no 個單字（從 1 算起，含頭尾），
+    左欄（英文）照清單順序排列；右欄（中文）仍然打亂，才不會變成同一列直接對應。"""
     words = st.session_state.words
-    num_pairs = min(num_pairs, len(words))
-    chosen = random.sample(words, num_pairs)
+    if sequential:
+        if end_no is None:
+            end_no = start_no + num_pairs - 1
+        chosen = list(words[max(start_no, 1) - 1:end_no])
+        num_pairs = len(chosen)
+    else:
+        num_pairs = min(num_pairs, len(words))
+        chosen = random.sample(words, num_pairs)
     st.session_state.round_pairs = chosen
     left_idx = list(range(num_pairs))
     right_idx = list(range(num_pairs))
-    random.shuffle(left_idx)
+    if not sequential:
+        random.shuffle(left_idx)
     random.shuffle(right_idx)
     st.session_state.left_order = left_idx
     st.session_state.right_order = right_idx
@@ -840,6 +374,75 @@ def start_new_round(num_pairs: int):
 # ---------------------------------------------------------------------------
 # 5. 側邊欄：單字管理
 # ---------------------------------------------------------------------------
+
+def parse_words_json(raw_bytes: bytes):
+    """解析並檢查匯入的 JSON。成功回傳 (單字清單, None)，失敗回傳 (None, 錯誤訊息)。"""
+    try:
+        data = json.loads(raw_bytes.decode("utf-8-sig"))
+    except Exception as e:
+        return None, f"不是有效的 JSON 檔案：{e}"
+    if not isinstance(data, list) or len(data) == 0:
+        return None, "JSON 內容必須是「不為空的單字清單」。"
+    cleaned = []
+    for i, item in enumerate(data, start=1):
+        if not isinstance(item, dict):
+            return None, f"第 {i} 筆不是物件（應為 {{\"en\":..., \"zh\":...}}）。"
+        en = str(item.get("en", "")).strip()
+        zh = str(item.get("zh", "")).strip()
+        if not en or not zh:
+            return None, f"第 {i} 筆缺少 en（英文）或 zh（中文）欄位。"
+        icon = str(item.get("icon", "")).strip() or guess_icon(en)
+        cleaned.append({"en": en, "zh": zh, "icon": icon})
+    return cleaned, None
+
+
+def make_import_filename(uploaded_name: str) -> str:
+    """把上傳的檔名轉成安全的目標檔名；不是 words 開頭的會加上 words_ 前綴，
+    這樣才會出現在「選擇要使用的單字檔」清單中。"""
+    name = os.path.basename(uploaded_name.replace("\\", "/")).strip() or DEFAULT_WORDS_FILENAME
+    if not name.lower().endswith(".json"):
+        name += ".json"
+    if not name.lower().startswith("words"):
+        name = "words_" + name
+    return name
+
+
+def _do_import(name: str, words: list):
+    """實際寫入檔案並切換到該單字檔（在 callback 中執行，可安全修改 selectbox 的狀態）。"""
+    path = compute_words_file(DATA_DIR, name)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(words, f, ensure_ascii=False, indent=2)
+    st.session_state.words_filename = name
+    st.session_state.words_file_picker = name
+    st.session_state.words = words
+    st.session_state.pending_import = None
+    st.session_state.import_uploader_n += 1  # 換一個 key，清空上傳欄位
+    st.session_state.import_msg = f"✅ 已匯入 {len(words)} 個單字到 {name}"
+
+
+def request_import(name: str, words: list):
+    """按下「匯入」：若檔案已存在先要求確認，否則直接匯入。"""
+    if os.path.exists(compute_words_file(DATA_DIR, name)):
+        st.session_state.pending_import = {"name": name, "words": words}
+    else:
+        _do_import(name, words)
+
+
+def confirm_import():
+    p = st.session_state.pending_import
+    if p:
+        _do_import(p["name"], p["words"])
+
+
+def cancel_import():
+    st.session_state.pending_import = None
+    st.session_state.import_msg = "已取消匯入，原檔案未被修改。"
+
+
+if "pending_import" not in st.session_state:
+    st.session_state.pending_import = None
+if "import_uploader_n" not in st.session_state:
+    st.session_state.import_uploader_n = 0
 
 with st.sidebar:
     st.subheader("📚 選擇要使用的單字檔")
@@ -862,6 +465,55 @@ with st.sidebar:
         apply_words_filename(picked_file)
         st.session_state.words = load_words()
         st.rerun()
+
+    # ---- 匯出 / 匯入單字檔 ----
+    st.markdown("**📤 匯出 / 📥 匯入單字檔**")
+
+    st.download_button(
+        f"📤 匯出目前單字（{st.session_state.words_filename}）",
+        data=json.dumps(st.session_state.words, ensure_ascii=False, indent=2).encode("utf-8"),
+        file_name=st.session_state.words_filename,
+        mime="application/json",
+        key="export_words_btn",
+        use_container_width=True,
+    )
+
+    if st.session_state.get("import_msg"):
+        st.info(st.session_state.pop("import_msg"))
+
+    uploaded = st.file_uploader(
+        "匯入 words.json（或其他 .json 單字檔）",
+        type=["json"],
+        key=f"import_uploader_{st.session_state.import_uploader_n}",
+    )
+
+    if uploaded is None:
+        st.session_state.pending_import = None
+    else:
+        import_words, import_err = parse_words_json(uploaded.getvalue())
+        target_name = make_import_filename(uploaded.name)
+        if import_err:
+            st.error(import_err)
+        else:
+            st.caption(f"檔案內有 {len(import_words)} 個單字，將匯入為：{target_name}")
+            if st.session_state.pending_import is None:
+                st.button(
+                    "📥 匯入",
+                    key="import_words_btn",
+                    on_click=request_import,
+                    args=(target_name, import_words),
+                    use_container_width=True,
+                )
+
+    # 覆蓋確認：目標檔案已存在時，要再按一次「確定覆蓋」才會真的寫入
+    pending = st.session_state.pending_import
+    if pending is not None:
+        st.warning(f"⚠️ {pending['name']} 已經存在，要覆蓋原本的 {pending['name']} 嗎？")
+        ok_col, no_col = st.columns(2)
+        with ok_col:
+            st.button("✅ 確定覆蓋", key="confirm_import_btn", on_click=confirm_import)
+        with no_col:
+            st.button("❌ 取消", key="cancel_import_btn", on_click=cancel_import)
 
     st.divider()
     st.header("📝 單字管理")
@@ -895,7 +547,7 @@ with st.sidebar:
     for i, w in enumerate(st.session_state.words):
         col1, col2 = st.columns([4, 1])
         with col1:
-            st.write(f"{w.get('icon', DEFAULT_ICON)} {w['en']} → {w['zh']}")
+            st.write(f"{i + 1}. {w.get('icon', DEFAULT_ICON)} {w['en']} → {w['zh']}")
         with col2:
             if st.button("🗑️", key=f"del_{i}"):
                 st.session_state.pending_delete = i
@@ -928,19 +580,67 @@ with st.sidebar:
 # 6. 遊戲設定與開始
 # ---------------------------------------------------------------------------
 
-max_pairs = max(2, len(st.session_state.words))
-default_pairs = min(8, max_pairs)
-num_pairs = st.slider("本回合要玩幾組單字？", min_value=2, max_value=max_pairs, value=default_pairs)
+ORDER_RANDOM = "🔀 亂數排序"
+ORDER_SEQ = "🔢 順序排序"
+
+total_words = len(st.session_state.words)
+is_sequential = st.session_state.get("order_mode", ORDER_RANDOM) == ORDER_SEQ
+seq_start, seq_end = 1, total_words
+range_valid = True
+
+if is_sequential:
+    # 順序排序：指定要玩單字清單的第 m 個到第 m+n 個（編號見左側單字清單）
+    rc1, rc2 = st.columns(2)
+    with rc1:
+        seq_start = st.number_input(
+            "從第幾個單字開始（m）", min_value=1, max_value=total_words, value=1, step=1
+        )
+    with rc2:
+        seq_end = st.number_input(
+            "到第幾個單字結束（m+n）", min_value=1, max_value=total_words,
+            value=min(8, total_words), step=1,
+        )
+    seq_start, seq_end = int(seq_start), int(seq_end)
+    range_valid = seq_end >= seq_start
+    if range_valid:
+        num_pairs = seq_end - seq_start + 1
+        st.caption(f"本回合範圍：單字清單第 {seq_start} ～ {seq_end} 個，共 {num_pairs} 組")
+    else:
+        num_pairs = 0
+        st.warning("結束編號不能小於開始編號，請重新設定範圍。")
+else:
+    max_pairs = max(2, total_words)
+    default_pairs = min(8, max_pairs)
+    num_pairs = st.slider("本回合要玩幾組單字？", min_value=2, max_value=max_pairs, value=default_pairs)
+
 show_english = st.checkbox(
     "👀 顯示英文單字文字（取消勾選會隱藏文字，只顯示🔊喇叭，考驗聽音辨義）",
     value=True,
     key="show_english",
 )
+show_chinese = st.checkbox(
+    "🀄 顯示中文翻譯文字（取消勾選會隱藏中文，只顯示圖案）",
+    value=True,
+    key="show_chinese",
+)
 
-col_a, col_b = st.columns([1, 1])
+col_mode, col_a, col_b = st.columns([2, 1, 1], vertical_alignment="center")
+with col_mode:
+    order_mode = st.radio(
+        "題目排序方式",
+        options=[ORDER_RANDOM, ORDER_SEQ],
+        horizontal=True,
+        key="order_mode",
+        label_visibility="collapsed",
+    )
 with col_a:
-    if st.button("🔄 開始新回合", type="primary"):
-        start_new_round(num_pairs)
+    if st.button("🔄 開始新回合", type="primary", disabled=not range_valid):
+        start_new_round(
+            num_pairs,
+            sequential=(order_mode == ORDER_SEQ),
+            start_no=seq_start,
+            end_no=seq_end if order_mode == ORDER_SEQ else None,
+        )
         st.rerun()
 with col_b:
     if st.session_state.round_pairs and st.button("🔊 連續播放本回合單字發音"):
@@ -1106,7 +806,8 @@ else:
                 is_matched = ri in matched
                 is_selected = (st.session_state.selected_right == ri)
                 prefix = "✅ " if is_matched else ("👉 " if is_selected else "")
-                label = f"{prefix}{w.get('icon', DEFAULT_ICON)} {w['zh']}"
+                zh_part = w["zh"] if st.session_state.show_chinese else ""
+                label = f"{prefix}{w.get('icon', DEFAULT_ICON)} {zh_part}".rstrip()
                 with st.container(key=f"rc_{ri}"):
                     if st.button(label, key=f"R_{ri}", disabled=is_matched, use_container_width=True):
                         st.session_state.selected_right = ri
