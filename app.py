@@ -1,30 +1,4 @@
 # -*- coding: utf-8 -*-
-r"""
-國小一年級中英單字連連看小遊戲
-------------------------------------------
-功能：
-1. 中英文單字連連看遊戲（點選左邊中文、右邊英文，配對正確會消除）
-2. 可自訂單字（含圖案 emoji），並儲存在 D:\vocab_game\words.json
-3. 具備英文單字發音（使用 gTTS 產生語音檔，快取在 D:\vocab_game\audio）
-4. 點選英文單字後，該按鈕會持續變色閃爍，並反覆播放該單字發音，
-   直到配對成功或重新選擇為止
-5. 配對正確會有拍手鼓掌音效；配對錯誤畫面會震動一下
-
-執行方式：
-    1. 安裝套件： pip install -r requirements.txt
-       （需要 streamlit >= 1.36，因為用到 st.container(key=...) 功能）
-    2. 執行程式： streamlit run vocab_matching_game.py
-
-注意：
-    - 本程式預設把單字資料與語音檔存放在 D 槽（D:\vocab_game）。
-      若電腦沒有 D 槽（例如 Mac / Linux，或 Windows 只有 C 槽），
-      程式會自動改存到目前資料夾底下的 vocab_game 資料夾，並顯示提示訊息。
-    - 語音使用 gTTS（Google 文字轉語音），產生語音檔時需要能連上網路，
-      但同一個單字只需下載一次，之後會使用快取檔案，不用重複連網。
-    - 拍手音效與畫面震動使用瀏覽器內建的 Web Audio / CSS 動畫技術產生，
-      不需要額外下載任何音效檔。
-"""
-
 import streamlit as st
 import streamlit.components.v1 as components
 import json
