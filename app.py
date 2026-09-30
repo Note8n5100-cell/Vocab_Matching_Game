@@ -154,17 +154,26 @@ def save_words(words):
 # 3. 語音與音效相關函式
 # ---------------------------------------------------------------------------
 
-def get_audio_path(english_word: str):
-    """回傳該英文單字的 mp3 路徑，若不存在則用 gTTS 產生並快取。"""
-    safe_name = "".join(c for c in english_word.lower() if c.isalnum()) or "word"
-    path = os.path.join(AUDIO_DIR, f"{safe_name}.mp3")
+TTS_LANG_OPTIONS = {
+    "🇬🇧 英語": "en",
+    "🇯🇵 日語": "ja",
+    "🇰🇷 韓語": "ko",
+    "🇻🇳 越南語": "vi",
+}
+
+
+def get_audio_path(text: str, lang: str = "en", slow: bool = False):
+    """回傳該文字對應的 mp3 路徑（依語言與速度快取），若不存在則用 gTTS 產生。"""
+    safe_name = "".join(c for c in text.lower() if c.isalnum()) or "word"
+    speed_tag = "slow" if slow else "normal"
+    path = os.path.join(AUDIO_DIR, f"{safe_name}_{lang}_{speed_tag}.mp3")
     if not os.path.exists(path):
         try:
             from gtts import gTTS
-            tts = gTTS(text=english_word, lang="en")
+            tts = gTTS(text=text, lang=lang, slow=slow)
             tts.save(path)
         except Exception as e:
-            st.warning(f"無法產生「{english_word}」的發音檔（需要網路連線）：{e}")
+            st.warning(f"無法產生「{text}」的發音檔（需要網路連線）：{e}")
             return None
     return path
 
@@ -175,26 +184,46 @@ def audio_file_to_data_uri(path: str):
     return f"data:audio/mp3;base64,{b64}"
 
 
-def play_single_audio(english_word: str, loop: bool = False, comp_key: str = None):
-    """播放單一單字發音；loop=True 時會不斷重複播放（用於選取中的英文按鈕）。"""
-    path = get_audio_path(english_word)
+def play_single_audio(
+    text: str,
+    loop: bool = False,
+    comp_key: str = None,
+    lang: str = None,
+    slow: bool = None,
+    rate: float = None,
+):
+    """播放單一文字的發音；loop=True 時會不斷重複播放（用於選取中的英文按鈕）。
+    rate 為額外的播放速度倍率（1.0=正常，數字越小越慢），用來做出比 gTTS 的
+    slow 選項更慢的第三段語速。"""
+    lang = lang or st.session_state.get("tts_lang", "en")
+    slow = st.session_state.get("tts_slow", False) if slow is None else slow
+    rate = st.session_state.get("tts_rate", 1.0) if rate is None else rate
+    path = get_audio_path(text, lang=lang, slow=slow)
     if not path:
         return
     uri = audio_file_to_data_uri(path)
-    loop_attr = "loop" if loop else ""
+    loop_js = "true" if loop else "false"
     html = f"""
-    <audio autoplay {loop_attr}>
-        <source src="{uri}" type="audio/mp3">
-    </audio>
+    <script>
+    (function(){{
+        var a = new Audio("{uri}");
+        a.loop = {loop_js};
+        a.playbackRate = {rate};
+        a.play();
+    }})();
+    </script>
     """
     components.html(html, height=0)
 
 
-def play_sequence_audio(english_words):
-    """依序連續播放多個單字的發音（清單/整回合的全部發音）。"""
+def play_sequence_audio(words_list, lang: str = None, slow: bool = None, rate: float = None):
+    """依序連續播放多個文字的發音（清單/整回合的全部發音）。"""
+    lang = lang or st.session_state.get("tts_lang", "en")
+    slow = st.session_state.get("tts_slow", False) if slow is None else slow
+    rate = st.session_state.get("tts_rate", 1.0) if rate is None else rate
     uris = []
-    for w in english_words:
-        path = get_audio_path(w)
+    for w in words_list:
+        path = get_audio_path(w, lang=lang, slow=slow)
         if path:
             uris.append(audio_file_to_data_uri(path))
     if not uris:
@@ -205,6 +234,7 @@ def play_sequence_audio(english_words):
         const sources = [{uris_js_array}];
         let idx = 0;
         const player = new Audio();
+        player.playbackRate = {rate};
         function playNext() {{
             if (idx < sources.length) {{
                 player.src = sources[idx];
@@ -341,25 +371,23 @@ if "round_pairs" not in st.session_state:
     st.session_state.attempts = 0
 
 
-def start_new_round(num_pairs: int, sequential: bool = False,
-                    start_no: int = 1, end_no: int = None):
-    """sequential=False：隨機抽題，左欄（英文）順序也隨機。
-    sequential=True：依單字清單順序，取第 start_no ~ end_no 個單字（從 1 算起，含頭尾），
-    左欄（英文）照清單順序排列；右欄（中文）仍然打亂，才不會變成同一列直接對應。"""
+def start_new_round(mode="🎲 亂數排序", num_pairs=None, seq_start=None, seq_end=None):
     words = st.session_state.words
-    if sequential:
-        if end_no is None:
-            end_no = start_no + num_pairs - 1
-        chosen = list(words[max(start_no, 1) - 1:end_no])
-        num_pairs = len(chosen)
+    if mode == "🔢 順序排序" and seq_start and seq_end:
+        start_i = int(min(seq_start, seq_end))
+        end_i = int(max(seq_start, seq_end))
+        start_i = max(1, start_i)
+        end_i = min(len(words), end_i)
+        chosen = words[start_i - 1:end_i] or words[:1]
     else:
-        num_pairs = min(num_pairs, len(words))
-        chosen = random.sample(words, num_pairs)
+        n = min(num_pairs or 2, len(words))
+        chosen = random.sample(words, n)
+
+    total_n = len(chosen)
     st.session_state.round_pairs = chosen
-    left_idx = list(range(num_pairs))
-    right_idx = list(range(num_pairs))
-    if not sequential:
-        random.shuffle(left_idx)
+    left_idx = list(range(total_n))
+    right_idx = list(range(total_n))
+    random.shuffle(left_idx)
     random.shuffle(right_idx)
     st.session_state.left_order = left_idx
     st.session_state.right_order = right_idx
@@ -374,75 +402,6 @@ def start_new_round(num_pairs: int, sequential: bool = False,
 # ---------------------------------------------------------------------------
 # 5. 側邊欄：單字管理
 # ---------------------------------------------------------------------------
-
-def parse_words_json(raw_bytes: bytes):
-    """解析並檢查匯入的 JSON。成功回傳 (單字清單, None)，失敗回傳 (None, 錯誤訊息)。"""
-    try:
-        data = json.loads(raw_bytes.decode("utf-8-sig"))
-    except Exception as e:
-        return None, f"不是有效的 JSON 檔案：{e}"
-    if not isinstance(data, list) or len(data) == 0:
-        return None, "JSON 內容必須是「不為空的單字清單」。"
-    cleaned = []
-    for i, item in enumerate(data, start=1):
-        if not isinstance(item, dict):
-            return None, f"第 {i} 筆不是物件（應為 {{\"en\":..., \"zh\":...}}）。"
-        en = str(item.get("en", "")).strip()
-        zh = str(item.get("zh", "")).strip()
-        if not en or not zh:
-            return None, f"第 {i} 筆缺少 en（英文）或 zh（中文）欄位。"
-        icon = str(item.get("icon", "")).strip() or guess_icon(en)
-        cleaned.append({"en": en, "zh": zh, "icon": icon})
-    return cleaned, None
-
-
-def make_import_filename(uploaded_name: str) -> str:
-    """把上傳的檔名轉成安全的目標檔名；不是 words 開頭的會加上 words_ 前綴，
-    這樣才會出現在「選擇要使用的單字檔」清單中。"""
-    name = os.path.basename(uploaded_name.replace("\\", "/")).strip() or DEFAULT_WORDS_FILENAME
-    if not name.lower().endswith(".json"):
-        name += ".json"
-    if not name.lower().startswith("words"):
-        name = "words_" + name
-    return name
-
-
-def _do_import(name: str, words: list):
-    """實際寫入檔案並切換到該單字檔（在 callback 中執行，可安全修改 selectbox 的狀態）。"""
-    path = compute_words_file(DATA_DIR, name)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(words, f, ensure_ascii=False, indent=2)
-    st.session_state.words_filename = name
-    st.session_state.words_file_picker = name
-    st.session_state.words = words
-    st.session_state.pending_import = None
-    st.session_state.import_uploader_n += 1  # 換一個 key，清空上傳欄位
-    st.session_state.import_msg = f"✅ 已匯入 {len(words)} 個單字到 {name}"
-
-
-def request_import(name: str, words: list):
-    """按下「匯入」：若檔案已存在先要求確認，否則直接匯入。"""
-    if os.path.exists(compute_words_file(DATA_DIR, name)):
-        st.session_state.pending_import = {"name": name, "words": words}
-    else:
-        _do_import(name, words)
-
-
-def confirm_import():
-    p = st.session_state.pending_import
-    if p:
-        _do_import(p["name"], p["words"])
-
-
-def cancel_import():
-    st.session_state.pending_import = None
-    st.session_state.import_msg = "已取消匯入，原檔案未被修改。"
-
-
-if "pending_import" not in st.session_state:
-    st.session_state.pending_import = None
-if "import_uploader_n" not in st.session_state:
-    st.session_state.import_uploader_n = 0
 
 with st.sidebar:
     st.subheader("📚 選擇要使用的單字檔")
@@ -466,76 +425,101 @@ with st.sidebar:
         st.session_state.words = load_words()
         st.rerun()
 
-    # ---- 匯出 / 匯入單字檔 ----
-    st.markdown("**📤 匯出 / 📥 匯入單字檔**")
-
-    st.download_button(
-        f"📤 匯出目前單字（{st.session_state.words_filename}）",
-        data=json.dumps(st.session_state.words, ensure_ascii=False, indent=2).encode("utf-8"),
-        file_name=st.session_state.words_filename,
-        mime="application/json",
-        key="export_words_btn",
-        use_container_width=True,
-    )
-
-    if st.session_state.get("import_msg"):
-        st.info(st.session_state.pop("import_msg"))
-
-    uploaded = st.file_uploader(
-        "匯入 words.json（或其他 .json 單字檔）",
-        type=["json"],
-        key=f"import_uploader_{st.session_state.import_uploader_n}",
-    )
-
-    if uploaded is None:
-        st.session_state.pending_import = None
-    else:
-        import_words, import_err = parse_words_json(uploaded.getvalue())
-        target_name = make_import_filename(uploaded.name)
-        if import_err:
-            st.error(import_err)
-        else:
-            st.caption(f"檔案內有 {len(import_words)} 個單字，將匯入為：{target_name}")
-            if st.session_state.pending_import is None:
-                st.button(
-                    "📥 匯入",
-                    key="import_words_btn",
-                    on_click=request_import,
-                    args=(target_name, import_words),
-                    use_container_width=True,
-                )
-
-    # 覆蓋確認：目標檔案已存在時，要再按一次「確定覆蓋」才會真的寫入
-    pending = st.session_state.pending_import
-    if pending is not None:
-        st.warning(f"⚠️ {pending['name']} 已經存在，要覆蓋原本的 {pending['name']} 嗎？")
-        ok_col, no_col = st.columns(2)
-        with ok_col:
-            st.button("✅ 確定覆蓋", key="confirm_import_btn", on_click=confirm_import)
-        with no_col:
-            st.button("❌ 取消", key="cancel_import_btn", on_click=cancel_import)
-
     st.divider()
-    st.header("📝 單字管理")
+    with st.container(key="toggle_row1"):
+        show_import_export = st.checkbox(
+            "📤 顯示匯入/匯出功能", value=False, key="show_import_export"
+        )
+    if show_import_export:
+        st.subheader("📤 匯入 / 匯出 words.json")
 
-    with st.form("add_word_form", clear_on_submit=True):
-        st.write("新增單字")
-        new_en = st.text_input("英文單字", key="new_en")
-        new_zh = st.text_input("中文意思", key="new_zh")
-        new_icon = st.text_input("圖案 emoji（可留空，會自動猜測）", key="new_icon")
-        submitted = st.form_submit_button("➕ 加入單字")
-        if submitted:
-            if new_en.strip() and new_zh.strip():
-                icon = new_icon.strip() or guess_icon(new_en)
-                st.session_state.words.insert(
-                    0, {"en": new_en.strip(), "zh": new_zh.strip(), "icon": icon}
+        export_data = json.dumps(st.session_state.words, ensure_ascii=False, indent=2)
+        st.download_button(
+            "⬇️ 匯出目前單字",
+            data=export_data,
+            file_name=st.session_state.words_filename,
+            mime="application/json",
+            key="export_words_btn",
+        )
+
+        uploaded_file = st.file_uploader(
+            "⬆️ 匯入 words.json（會匯入到目前選擇的檔案）",
+            type=["json"],
+            key="import_words_uploader",
+        )
+        if uploaded_file is not None:
+            sig = (uploaded_file.name, uploaded_file.size)
+            if st.session_state.get("last_import_sig") != sig:
+                st.session_state.last_import_sig = sig
+                try:
+                    content = json.loads(uploaded_file.getvalue().decode("utf-8"))
+                    if not isinstance(content, list):
+                        raise ValueError("檔案內容必須是一個陣列（列表）")
+                    cleaned = []
+                    for item in content:
+                        en_v = str(item.get("en", "")).strip()
+                        zh_v = str(item.get("zh", "")).strip()
+                        if not en_v or not zh_v:
+                            continue
+                        icon_v = item.get("icon") or guess_icon(en_v)
+                        cleaned.append({"en": en_v, "zh": zh_v, "icon": icon_v})
+                    if not cleaned:
+                        raise ValueError("沒有解析到任何有效的單字（需要 en 與 zh 欄位）")
+                    st.session_state.pending_import_words = cleaned
+                    st.session_state.pending_import_target_exists = os.path.exists(WORDS_FILE)
+                except Exception as e:
+                    st.error(f"匯入失敗，檔案格式不正確：{e}")
+
+        if st.session_state.get("pending_import_words") is not None:
+            n_import = len(st.session_state.pending_import_words)
+            target_name = st.session_state.words_filename
+            if st.session_state.get("pending_import_target_exists"):
+                st.warning(
+                    f"「{target_name}」已經存在，匯入後會覆蓋原本內容（新內容共 {n_import} 筆），確定要覆蓋嗎？"
                 )
-                save_words(st.session_state.words)
-                st.success(f"已新增：{icon} {new_en.strip()} / {new_zh.strip()}")
+                imp_c1, imp_c2 = st.columns(2)
+                with imp_c1:
+                    if st.button("✅ 確定覆蓋匯入", key="confirm_import_overwrite"):
+                        st.session_state.words = st.session_state.pending_import_words
+                        save_words(st.session_state.words)
+                        st.session_state.pending_import_words = None
+                        st.success(f"已匯入 {n_import} 筆單字到 {target_name}")
+                        st.rerun()
+                with imp_c2:
+                    if st.button("❌ 取消匯入", key="cancel_import"):
+                        st.session_state.pending_import_words = None
+                        st.rerun()
             else:
-                st.warning("請同時輸入英文單字與中文意思")
+                st.session_state.words = st.session_state.pending_import_words
+                save_words(st.session_state.words)
+                st.session_state.pending_import_words = None
+                st.success(f"已匯入 {n_import} 筆單字到 {target_name}")
+                st.rerun()
+
+    with st.container(key="toggle_row2"):
+        show_add_form = st.checkbox("➕ 顯示新增單字功能", value=False, key="show_add_form")
+    if show_add_form:
+        st.header("📝 單字管理")
+
+        with st.form("add_word_form", clear_on_submit=True):
+            st.write("新增單字")
+            new_en = st.text_input("英文單字", key="new_en")
+            new_zh = st.text_input("中文意思", key="new_zh")
+            new_icon = st.text_input("圖案 emoji（可留空，會自動猜測）", key="new_icon")
+            submitted = st.form_submit_button("➕ 加入單字")
+            if submitted:
+                if new_en.strip() and new_zh.strip():
+                    icon = new_icon.strip() or guess_icon(new_en)
+                    st.session_state.words.insert(
+                        0, {"en": new_en.strip(), "zh": new_zh.strip(), "icon": icon}
+                    )
+                    save_words(st.session_state.words)
+                    st.success(f"已新增：{icon} {new_en.strip()} / {new_zh.strip()}")
+                else:
+                    st.warning("請同時輸入英文單字與中文意思")
 
     st.divider()
+    st.subheader("🗒️ 單字管理清單")
     st.write(
         f"目前共有 {len(st.session_state.words)} 個單字"
         f"（來自 {st.session_state.words_filename}）："
@@ -544,14 +528,15 @@ with st.sidebar:
     if "pending_delete" not in st.session_state:
         st.session_state.pending_delete = None
 
-    for i, w in enumerate(st.session_state.words):
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            st.write(f"{i + 1}. {w.get('icon', DEFAULT_ICON)} {w['en']} → {w['zh']}")
-        with col2:
-            if st.button("🗑️", key=f"del_{i}"):
-                st.session_state.pending_delete = i
-                st.rerun()
+    with st.container(key="word_list_rows"):
+        for i, w in enumerate(st.session_state.words):
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.write(f"{w.get('icon', DEFAULT_ICON)} {w['en']}")
+            with col2:
+                if st.button("🗑️", key=f"del_{i}"):
+                    st.session_state.pending_delete = i
+                    st.rerun()
 
     # 刪除確認訊息：點垃圾桶後不會馬上刪除，要再按一次「確定刪除」才會真的刪掉
     pending_idx = st.session_state.pending_delete
@@ -580,38 +565,38 @@ with st.sidebar:
 # 6. 遊戲設定與開始
 # ---------------------------------------------------------------------------
 
-ORDER_RANDOM = "🔀 亂數排序"
-ORDER_SEQ = "🔢 順序排序"
+max_pairs = max(2, len(st.session_state.words))
+default_pairs = min(8, max_pairs)
 
-total_words = len(st.session_state.words)
-is_sequential = st.session_state.get("order_mode", ORDER_RANDOM) == ORDER_SEQ
-seq_start, seq_end = 1, total_words
-range_valid = True
-
-if is_sequential:
-    # 順序排序：指定要玩單字清單的第 m 個到第 m+n 個（編號見左側單字清單）
-    rc1, rc2 = st.columns(2)
-    with rc1:
-        seq_start = st.number_input(
-            "從第幾個單字開始（m）", min_value=1, max_value=total_words, value=1, step=1
+mode_col, setting_col = st.columns([1, 3])
+with mode_col:
+    quiz_mode = st.radio(
+        "出題方式",
+        ["🎲 亂數排序", "🔢 順序排序"],
+        key="quiz_mode",
+    )
+with setting_col:
+    seq_start, seq_end = None, None
+    num_pairs = None
+    if quiz_mode == "🎲 亂數排序":
+        num_pairs = st.slider(
+            "本回合要玩幾組單字？", min_value=2, max_value=max_pairs, value=default_pairs
         )
-    with rc2:
-        seq_end = st.number_input(
-            "到第幾個單字結束（m+n）", min_value=1, max_value=total_words,
-            value=min(8, total_words), step=1,
-        )
-    seq_start, seq_end = int(seq_start), int(seq_end)
-    range_valid = seq_end >= seq_start
-    if range_valid:
-        num_pairs = seq_end - seq_start + 1
-        st.caption(f"本回合範圍：單字清單第 {seq_start} ～ {seq_end} 個，共 {num_pairs} 組")
     else:
-        num_pairs = 0
-        st.warning("結束編號不能小於開始編號，請重新設定範圍。")
-else:
-    max_pairs = max(2, total_words)
-    default_pairs = min(8, max_pairs)
-    num_pairs = st.slider("本回合要玩幾組單字？", min_value=2, max_value=max_pairs, value=default_pairs)
+        rc1, rc2 = st.columns(2)
+        with rc1:
+            seq_start = st.number_input(
+                "從第幾題", min_value=1, max_value=max_pairs, value=1, step=1, key="seq_start"
+            )
+        with rc2:
+            seq_end = st.number_input(
+                "到第幾題",
+                min_value=1,
+                max_value=max_pairs,
+                value=min(8, max_pairs),
+                step=1,
+                key="seq_end",
+            )
 
 show_english = st.checkbox(
     "👀 顯示英文單字文字（取消勾選會隱藏文字，只顯示🔊喇叭，考驗聽音辨義）",
@@ -619,28 +604,39 @@ show_english = st.checkbox(
     key="show_english",
 )
 show_chinese = st.checkbox(
-    "🀄 顯示中文翻譯文字（取消勾選會隱藏中文，只顯示圖案）",
+    "👀 顯示中文翻譯（取消勾選會隱藏中文文字，只顯示圖案）",
     value=True,
     key="show_chinese",
 )
 
-col_mode, col_a, col_b = st.columns([2, 1, 1], vertical_alignment="center")
-with col_mode:
-    order_mode = st.radio(
-        "題目排序方式",
-        options=[ORDER_RANDOM, ORDER_SEQ],
-        horizontal=True,
-        key="order_mode",
-        label_visibility="collapsed",
+st.markdown("**🔊 發音設定**")
+tts_col1, tts_col2 = st.columns(2)
+with tts_col1:
+    tts_lang_label = st.selectbox(
+        "發音語言", options=list(TTS_LANG_OPTIONS.keys()), key="tts_lang_label"
     )
+    st.session_state.tts_lang = TTS_LANG_OPTIONS[tts_lang_label]
+with tts_col2:
+    tts_speed_label = st.radio(
+        "發音速度",
+        ["正常速度", "慢速", "更慢速"],
+        key="tts_speed_label",
+        horizontal=True,
+    )
+    # 正常：gTTS 正常語速、播放倍率 1.0
+    # 慢速：gTTS 本身的慢速語音
+    # 更慢速：gTTS 慢速語音 + 再降低播放倍率，做出比「慢速」更慢的效果
+    TTS_SPEED_MAP = {
+        "正常速度": (False, 1.0),
+        "慢速": (True, 1.0),
+        "更慢速": (True, 0.7),
+    }
+    st.session_state.tts_slow, st.session_state.tts_rate = TTS_SPEED_MAP[tts_speed_label]
+
+col_a, col_b = st.columns([1, 1])
 with col_a:
-    if st.button("🔄 開始新回合", type="primary", disabled=not range_valid):
-        start_new_round(
-            num_pairs,
-            sequential=(order_mode == ORDER_SEQ),
-            start_no=seq_start,
-            end_no=seq_end if order_mode == ORDER_SEQ else None,
-        )
+    if st.button("🔄 開始新回合", type="primary"):
+        start_new_round(mode=quiz_mode, num_pairs=num_pairs, seq_start=seq_start, seq_end=seq_end)
         st.rerun()
 with col_b:
     if st.session_state.round_pairs and st.button("🔊 連續播放本回合單字發音"):
@@ -728,6 +724,29 @@ BUTTON_SIZE_CSS = """
 }
 .qnum-wrapper:hover .qnum-tooltip {
     display: block;
+}
+/* 側邊欄「顯示匯入/匯出功能」「顯示新增單字功能」勾選框，上下間距縮小 */
+.st-key-toggle_row1 [data-testid="stElementContainer"],
+.st-key-toggle_row1 .element-container,
+.st-key-toggle_row2 [data-testid="stElementContainer"],
+.st-key-toggle_row2 .element-container {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+.st-key-toggle_row1, .st-key-toggle_row2 {
+    margin-top: 0.1rem !important;
+    margin-bottom: 0.1rem !important;
+}
+/* 單字管理清單：每個單字上下間距縮小 */
+.st-key-word_list_rows [data-testid="stHorizontalBlock"] {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    gap: 0.3rem !important;
+}
+.st-key-word_list_rows [data-testid="stElementContainer"],
+.st-key-word_list_rows .element-container {
+    margin-top: 0.05rem !important;
+    margin-bottom: 0.05rem !important;
 }
 </style>
 """
