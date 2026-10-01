@@ -39,8 +39,13 @@ import glob
 # ---------------------------------------------------------------------------
 
 def get_data_dir():
-    """優先使用 D:\\vocab_game，若不可用則退回目前資料夾底下的 vocab_game。"""
-    preferred = r"D:\vocab_game"
+    """優先使用「這支程式所在資料夾」底下的 vocab_game 資料夾，
+    若不可寫入則退回目前工作目錄底下的 vocab_game。"""
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+    except NameError:
+        script_dir = os.getcwd()
+    preferred = os.path.join(script_dir, "vocab_game")
     try:
         os.makedirs(preferred, exist_ok=True)
         test_file = os.path.join(preferred, ".write_test")
@@ -323,6 +328,24 @@ def trigger_wrong_shake():
     components.html(html, height=0)
 
 
+def scroll_to_element(element_id: str):
+    """平滑捲動頁面到指定 id 的元素（透過操作父層 DOM 實作）。"""
+    html = f"""
+    <script>
+    (function(){{
+        try {{
+            var doc = window.parent.document;
+            var el = doc.getElementById('{element_id}');
+            if (el) {{
+                el.scrollIntoView({{behavior: 'smooth', block: 'center'}});
+            }}
+        }} catch (e) {{ console.log(e); }}
+    }})();
+    </script>
+    """
+    components.html(html, height=0)
+
+
 def render_flash_css(container_key: str):
     """讓指定 container(key=...) 內的按鈕持續變換顏色（彩虹閃爍動畫）。"""
     css = f"""
@@ -352,7 +375,7 @@ def render_flash_css(container_key: str):
 
 st.set_page_config(page_title="中英單字連連看", page_icon="🎮", layout="wide")
 
-st.title("🎮 國小一年級中英單字連連看")
+st.title("🎮 全宇宙最強的中英單字猜猜看遊戲")
 st.caption(f"單字與發音檔存放於：{DATA_DIR}")
 
 # 初始化 session_state
@@ -367,6 +390,8 @@ if "round_pairs" not in st.session_state:
     st.session_state.selected_left = None
     st.session_state.selected_right = None
     st.session_state.wrong_msg = ""
+    st.session_state.wrong_left_idx = None
+    st.session_state.wrong_right_idx = None
     st.session_state.score = 0
     st.session_state.attempts = 0
 
@@ -387,21 +412,30 @@ def start_new_round(mode="🎲 亂數排序", num_pairs=None, seq_start=None, se
     st.session_state.round_pairs = chosen
     left_idx = list(range(total_n))
     right_idx = list(range(total_n))
-    random.shuffle(left_idx)
-    random.shuffle(right_idx)
+    if mode != "🔢 順序排序":
+        # 只有「亂數排序」才打亂左右欄的顯示順序；順序排序時英文、中文都照原本順序顯示
+        random.shuffle(left_idx)
+        random.shuffle(right_idx)
     st.session_state.left_order = left_idx
     st.session_state.right_order = right_idx
     st.session_state.matched = set()
     st.session_state.selected_left = None
     st.session_state.selected_right = None
     st.session_state.wrong_msg = ""
+    st.session_state.wrong_left_idx = None
+    st.session_state.wrong_right_idx = None
     st.session_state.score = 0
     st.session_state.attempts = 0
-
 
 # ---------------------------------------------------------------------------
 # 5. 側邊欄：單字管理
 # ---------------------------------------------------------------------------
+
+# 若上一輪要求「關閉匯入/匯出區塊」，要在這個勾選框的 widget 被建立「之前」重設，
+# 否則 Streamlit 會因為 widget 已經實例化而噴錯
+if st.session_state.get("_reset_import_export_toggle"):
+    st.session_state.show_import_export = False
+    st.session_state._reset_import_export_toggle = False
 
 with st.sidebar:
     st.subheader("📚 選擇要使用的單字檔")
@@ -415,7 +449,7 @@ with st.sidebar:
         existing_files = sorted(existing_files + [current_file])
 
     picked_file = st.selectbox(
-        "從資料夾中選擇（例如 words1.json、words2.json...）",
+        "選擇(words*.json)",
         options=existing_files,
         index=existing_files.index(current_file),
         key="words_file_picker",
@@ -443,7 +477,7 @@ with st.sidebar:
         )
 
         uploaded_file = st.file_uploader(
-            "⬆️ 匯入 words.json（會匯入到目前選擇的檔案）",
+            "⬆️ 匯入 words.json（會依照上傳檔案的檔名存成新的單字檔）",
             type=["json"],
             key="import_words_uploader",
         )
@@ -465,14 +499,19 @@ with st.sidebar:
                         cleaned.append({"en": en_v, "zh": zh_v, "icon": icon_v})
                     if not cleaned:
                         raise ValueError("沒有解析到任何有效的單字（需要 en 與 zh 欄位）")
+                    import_filename = os.path.basename(uploaded_file.name)
+                    if not import_filename.lower().endswith(".json"):
+                        import_filename += ".json"
+                    import_target_path = compute_words_file(DATA_DIR, import_filename)
                     st.session_state.pending_import_words = cleaned
-                    st.session_state.pending_import_target_exists = os.path.exists(WORDS_FILE)
+                    st.session_state.pending_import_filename = import_filename
+                    st.session_state.pending_import_target_exists = os.path.exists(import_target_path)
                 except Exception as e:
                     st.error(f"匯入失敗，檔案格式不正確：{e}")
 
         if st.session_state.get("pending_import_words") is not None:
             n_import = len(st.session_state.pending_import_words)
-            target_name = st.session_state.words_filename
+            target_name = st.session_state.pending_import_filename
             if st.session_state.get("pending_import_target_exists"):
                 st.warning(
                     f"「{target_name}」已經存在，匯入後會覆蓋原本內容（新內容共 {n_import} 筆），確定要覆蓋嗎？"
@@ -480,19 +519,24 @@ with st.sidebar:
                 imp_c1, imp_c2 = st.columns(2)
                 with imp_c1:
                     if st.button("✅ 確定覆蓋匯入", key="confirm_import_overwrite"):
+                        apply_words_filename(target_name)
                         st.session_state.words = st.session_state.pending_import_words
                         save_words(st.session_state.words)
                         st.session_state.pending_import_words = None
+                        st.session_state._reset_import_export_toggle = True
                         st.success(f"已匯入 {n_import} 筆單字到 {target_name}")
                         st.rerun()
                 with imp_c2:
                     if st.button("❌ 取消匯入", key="cancel_import"):
                         st.session_state.pending_import_words = None
+                        st.session_state._reset_import_export_toggle = True
                         st.rerun()
             else:
+                apply_words_filename(target_name)
                 st.session_state.words = st.session_state.pending_import_words
                 save_words(st.session_state.words)
                 st.session_state.pending_import_words = None
+                st.session_state._reset_import_export_toggle = True
                 st.success(f"已匯入 {n_import} 筆單字到 {target_name}")
                 st.rerun()
 
@@ -542,6 +586,8 @@ with st.sidebar:
     pending_idx = st.session_state.pending_delete
     if pending_idx is not None and 0 <= pending_idx < len(st.session_state.words):
         w = st.session_state.words[pending_idx]
+        st.markdown('<div id="delete-confirm-anchor"></div>', unsafe_allow_html=True)
+        scroll_to_element("delete-confirm-anchor")
         st.warning(
             f"確定要刪除「{w.get('icon', DEFAULT_ICON)} {w['en']} / {w['zh']}」這個單字嗎？"
         )
@@ -566,7 +612,7 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 
 max_pairs = max(2, len(st.session_state.words))
-default_pairs = min(8, max_pairs)
+default_pairs = min(10, max_pairs)
 
 mode_col, setting_col = st.columns([1, 3])
 with mode_col:
@@ -593,7 +639,7 @@ with setting_col:
                 "到第幾題",
                 min_value=1,
                 max_value=max_pairs,
-                value=min(8, max_pairs),
+                value=min(10, max_pairs),
                 step=1,
                 key="seq_end",
             )
@@ -737,16 +783,52 @@ BUTTON_SIZE_CSS = """
     margin-top: 0.1rem !important;
     margin-bottom: 0.1rem !important;
 }
-/* 單字管理清單：每個單字上下間距縮小 */
+/* 單字管理清單：每個單字上下間距再縮小，刪除按鈕也縮小 */
+.st-key-word_list_rows [data-testid="stVerticalBlock"] {
+    gap: 0 !important;
+}
 .st-key-word_list_rows [data-testid="stHorizontalBlock"] {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
-    gap: 0.3rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    gap: 0.05rem !important;
 }
 .st-key-word_list_rows [data-testid="stElementContainer"],
 .st-key-word_list_rows .element-container {
-    margin-top: 0.05rem !important;
-    margin-bottom: 0.05rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+.st-key-word_list_rows p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1.1 !important;
+}
+.st-key-word_list_rows [class*="st-key-del_"] button {
+    font-size: 0.75rem !important;
+    padding: 0.1rem 0.3rem !important;
+    min-height: 0 !important;
+    height: auto !important;
+    line-height: 1.2 !important;
+}
+/* 側邊欄分隔線（選擇單字檔／匯入匯出／單字管理清單之間）上下間距縮小 */
+[data-testid="stSidebar"] hr {
+    margin-top: 0.4rem !important;
+    margin-bottom: 0.4rem !important;
+}
+/* 側邊欄最上方（收合圖示）跟第一個標題之間的間距再縮小 */
+[data-testid="stSidebarUserContent"],
+[data-testid="stSidebarContent"] {
+    padding-top: 0 !important;
+}
+[data-testid="stSidebar"] .block-container {
+    padding-top: 0 !important;
+}
+[data-testid="stSidebar"] h3:first-of-type {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 </style>
 """
@@ -762,6 +844,24 @@ else:
         f"進度：{len(matched)} / {total} 組　｜　答對次數：{st.session_state.score}　"
         f"｜　嘗試次數：{st.session_state.attempts}"
     )
+
+    # 答錯的按鈕文字變紅色；會一直持續到按下「開始新回合」才會恢復，不會自動消失
+    wl = st.session_state.get("wrong_left_idx")
+    wr = st.session_state.get("wrong_right_idx")
+    if wl is not None and wr is not None:
+        st.markdown(
+            f"""
+            <style>
+            [class~="st-key-lc_{wl}"] button,
+            [class~="st-key-L_{wl}"] button,
+            [class~="st-key-rc_{wr}"] button,
+            [class~="st-key-R_{wr}"] button {{
+                color: #ff0000 !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
     if st.session_state.wrong_msg:
         st.markdown(
@@ -781,6 +881,7 @@ else:
             """,
             unsafe_allow_html=True,
         )
+        trigger_wrong_shake()
         time.sleep(1.5)
         st.session_state.wrong_msg = ""
         st.rerun()
@@ -856,9 +957,10 @@ else:
             st.rerun()
         else:
             st.session_state.wrong_msg = "❌ 答錯了，再試一次！"
+            st.session_state.wrong_left_idx = sl
+            st.session_state.wrong_right_idx = sr
             st.session_state.selected_left = None
             st.session_state.selected_right = None
-            trigger_wrong_shake()
             st.rerun()
 
     if len(matched) == total:
